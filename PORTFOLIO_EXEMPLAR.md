@@ -56,7 +56,7 @@ Create a rescue-themed arcade game where players must catch falling people using
 #### Game 1: Fire (Game & Watch, 1980)
 **Overview**: Original Nintendo Game & Watch game where players catch people jumping from a burning building.
 
-**Key Elements Analyzed**:
+**Key Elements Analysed**:
 - **Spawn System**: People appear randomly from different windows
 - **Movement**: Simple left/right positioning for the rescue device
 - **Difficulty Progression**: Speed increases over time
@@ -72,7 +72,7 @@ Create a rescue-themed arcade game where players must catch falling people using
 #### Game 2: Kaboom! (Atari 2600, 1981)
 **Overview**: Players catch bombs dropped by a criminal using buckets of water.
 
-**Key Elements Analyzed**:
+**Key Elements Analysed**:
 - **Catching Mechanic**: Precise positioning required for catches
 - **Visual Feedback**: Clear indication when objects are caught vs missed
 - **Scoring**: Points awarded based on catches
@@ -97,61 +97,161 @@ Based on research, my game will include:
 
 ### Flowchart: Main Game Loop
 
+```mermaid
+flowchart TD
+    Start([START]) --> Init[Set game_state to MENU]
+    Init --> MenuLoop{MENU LOOP}
+    
+    MenuLoop --> DisplayMenu[Display menu screen]
+    DisplayMenu --> WaitSpace1[Wait for SPACE key press]
+    WaitSpace1 --> SpacePressed1{SPACE pressed?}
+    SpacePressed1 -->|No| DisplayMenu
+    SpacePressed1 -->|Yes| StartGame[Set game_state to PLAYING<br/>Reset score to 0<br/>Reset lives to 3<br/>Play start sound]
+    
+    StartGame --> GameLoop{GAME LOOP}
+    
+    GameLoop --> UpdatePlayer[Update player position<br/>LEFT/RIGHT arrow keys]
+    UpdatePlayer --> IncrementTimer[Increment spawn_timer]
+    IncrementTimer --> CheckTimer{spawn_timer ≥<br/>spawn_delay?}
+    
+    CheckTimer -->|Yes| SpawnPerson[Create new falling person<br/>Reset spawn_timer to 0]
+    CheckTimer -->|No| UpdatePeople
+    SpawnPerson --> UpdatePeople[For each falling person:<br/>Move person downward]
+    
+    UpdatePeople --> CheckCollision{Person collide<br/>with trampoline?}
+    
+    CheckCollision -->|Yes| AddScore[Add 10 to score<br/>Remove person<br/>Play catch sound]
+    AddScore --> CheckScore{Score divisible<br/>by 50?}
+    CheckScore -->|Yes| SpeedUp[Decrease spawn_delay<br/>if > 20]
+    CheckScore -->|No| DrawScreen
+    SpeedUp --> DrawScreen
+    
+    CheckCollision -->|No| CheckMissed{Person below<br/>screen?}
+    CheckMissed -->|No| DrawScreen
+    CheckMissed -->|Yes| LoseLives[Decrease lives by 1<br/>Remove person<br/>Play miss sound]
+    LoseLives --> CheckGameOver{Lives ≤ 0?}
+    
+    CheckGameOver -->|Yes| SetGameOver[Set game_state to GAME_OVER<br/>Play game over sound]
+    CheckGameOver -->|No| DrawScreen
+    SetGameOver --> DrawScreen
+    
+    DrawScreen[Draw everything on screen]
+    DrawScreen --> StillPlaying{game_state still<br/>PLAYING?}
+    
+    StillPlaying -->|Yes| GameLoop
+    StillPlaying -->|No| GameOverLoop{GAME OVER LOOP}
+    
+    GameOverLoop --> DisplayGameOver[Display game over screen<br/>Display final score]
+    DisplayGameOver --> WaitSpace2[Wait for SPACE key press]
+    WaitSpace2 --> SpacePressed2{SPACE pressed?}
+    SpacePressed2 -->|No| DisplayGameOver
+    SpacePressed2 -->|Yes| MenuLoop
+    
+    style Start fill:#0173B2,stroke:#000,stroke-width:3px,color:#fff
+    style MenuLoop fill:#DE8F05,stroke:#000,stroke-width:3px,color:#fff
+    style GameLoop fill:#029E73,stroke:#000,stroke-width:3px,color:#fff
+    style GameOverLoop fill:#CC78BC,stroke:#000,stroke-width:3px,color:#fff
+    style SetGameOver fill:#CA5050,stroke:#000,stroke-width:3px,color:#fff
+    style AddScore fill:#56B4E9,stroke:#000,stroke-width:3px,color:#000
 ```
-START
-  ↓
-Set game_state to MENU
-  ↓
-[MENU LOOP]
-  Display menu screen
-  Wait for SPACE key press
-  ↓
-  When SPACE pressed → Set game_state to PLAYING
-                     → Reset score to 0
-                     → Reset lives to 3
-  ↓
-[GAME LOOP] ←──────────────┐
-  ↓                         │
-  Update player position    │
-  (LEFT/RIGHT arrow keys)   │
-  ↓                         │
-  Increment spawn_timer     │
-  ↓                         │
-  Is spawn_timer ≥ spawn_delay?
-  ├─ YES: Create new falling person
-  │       Reset spawn_timer to 0
-  │       ↓
-  └─ NO:  Continue
-  ↓
-  For each falling person:
-    Move person downward
-    ↓
-    Does person collide with trampoline?
-    ├─ YES: Add 10 to score
-    │       Remove person from list
-    │       Check if score divisible by 50
-    │       └─ YES: Decrease spawn_delay (speed up)
-    │       ↓
-    └─ NO:  Is person below screen?
-            ├─ YES: Decrease lives by 1
-            │       Remove person from list
-            │       Is lives ≤ 0?
-            │       ├─ YES: Set game_state to GAME_OVER
-            │       └─ NO:  Continue
-            └─ NO:  Continue
-  ↓
-  Draw everything on screen
-  ↓
-  Is game_state still PLAYING?
-  ├─ YES: Return to top of GAME LOOP ──┘
-  └─ NO:  Continue to GAME OVER
-  ↓
-[GAME OVER LOOP]
-  Display game over screen
-  Display final score
-  Wait for SPACE key press
-  ↓
-  When SPACE pressed → Return to MENU LOOP
+
+**Note**: This flowchart shows the complete game logic from start to finish, including all three game states (Menu, Playing, Game Over) and the main game loop.
+
+
+**Simplified State Diagram** (alternative view focusing on game states):
+
+```mermaid
+flowchart TD
+    Start([START GAME]) --> Menu
+    
+    subgraph Menu [MENU STATE]
+        M1[Show title and instructions]
+        M2{Player presses<br/>SPACE?}
+        M1 --> M2
+        M2 -->|No| M1
+    end
+    
+    M2 -->|Yes| InitGame[Initialize:<br/>score = 0<br/>lives = 3<br/>spawn_delay = 60]
+    
+    InitGame --> Playing
+    
+    subgraph Playing [PLAYING STATE]
+        P1[Move trampoline<br/>with arrow keys]
+        P2[Spawn falling people<br/>from random windows]
+        P3[Update falling people positions]
+        P4{Collision<br/>detected?}
+        P5[score += 10<br/>Play catch sound]
+        P6{Person<br/>missed?}
+        P7[lives -= 1<br/>Play miss sound]
+        P8{lives == 0?}
+        
+        P1 --> P2
+        P2 --> P3
+        P3 --> P4
+        P4 -->|Yes| P5
+        P4 -->|No| P6
+        P5 --> P2
+        P6 -->|No| P2
+        P6 -->|Yes| P7
+        P7 --> P8
+        P8 -->|No| P2
+    end
+    
+    P8 -->|Yes| GameOver
+    
+    subgraph GameOver [GAME OVER STATE]
+        G1[Show final score<br/>Play game over sound]
+        G2{Player presses<br/>SPACE?}
+        G1 --> G2
+        G2 -->|No| G1
+    end
+    
+    G2 -->|Yes| Menu
+    
+    style Start fill:#0173B2,stroke:#000,stroke-width:3px,color:#fff
+    style Menu fill:#DE8F05,stroke:#000,stroke-width:3px
+    style Playing fill:#029E73,stroke:#000,stroke-width:3px
+    style GameOver fill:#CC78BC,stroke:#000,stroke-width:3px
+    style P5 fill:#56B4E9,stroke:#000,stroke-width:3px,color:#000
+    style P7 fill:#CA5050,stroke:#000,stroke-width:3px,color:#fff
+```
+
+---
+
+### Flowchart: Collision Detection Algorithm
+
+```mermaid
+flowchart TD
+    Start([Collision Detection Algorithm]) --> GetPersonPos[Get person position:<br/>person_x, person_y<br/>person_width, person_height]
+    
+    GetPersonPos --> GetTrampPos[Get trampoline position:<br/>tramp_x, tramp_y<br/>tramp_width, tramp_height]
+    
+    GetTrampPos --> CalcBounds[Calculate boundaries:<br/>person_left = person_x - width/2<br/>person_right = person_x + width/2<br/>person_top = person_y - height/2<br/>person_bottom = person_y + height/2<br/><br/>Same for trampoline]
+    
+    CalcBounds --> Check1{person_right ><br/>tramp_left?}
+    
+    Check1 -->|No| NoCollision[Return FALSE<br/>No collision]
+    Check1 -->|Yes| Check2{person_left <<br/>tramp_right?}
+    
+    Check2 -->|No| NoCollision
+    Check2 -->|Yes| Check3{person_bottom ><br/>tramp_top?}
+    
+    Check3 -->|No| NoCollision
+    Check3 -->|Yes| Check4{person_top <<br/>tramp_bottom?}
+    
+    Check4 -->|No| NoCollision
+    Check4 -->|Yes| Collision[Return TRUE<br/>Collision detected!]
+    
+    Collision --> Action[Add score<br/>Remove person<br/>Play sound]
+    NoCollision --> Continue[Continue checking<br/>other people]
+    Action --> End([END])
+    Continue --> End
+    
+    style Start fill:#0173B2,stroke:#000,stroke-width:3px,color:#fff
+    style Collision fill:#DE8F05,stroke:#000,stroke-width:3px,color:#fff
+    style NoCollision fill:#CC78BC,stroke:#000,stroke-width:3px,color:#fff
+    style Action fill:#56B4E9,stroke:#000,stroke-width:3px,color:#000
+    style End fill:#029E73,stroke:#000,stroke-width:3px,color:#fff
 ```
 
 ---
@@ -272,7 +372,7 @@ class FallingPerson:
         self.actor.y = JUMP_HEIGHT
         self.speed = 3
 ```
-This class encapsulates all data and behavior for falling people, making the code organized and easy to manage.
+This class encapsulates all data and behaviour for falling people, making the code organised and easy to manage.
 
 **Game State Management**:
 Using integer constants (MENU=0, PLAYING=1, GAME_OVER=2) to track which screen is active, with conditional logic in `update()` and `draw()` functions.
@@ -344,7 +444,7 @@ def start_game():
 
 **Cause**: Collision detection was too generous due to large sprite hitboxes.
 
-**Fix**: While Pygame Zero's `colliderect()` was working correctly, I realized the issue was visual - the trampoline sprite had transparent pixels. This was actually working as designed, so no code change needed, but I made a note for future sprite design.
+**Fix**: While Pygame Zero's `colliderect()` was working correctly, I realised the issue was visual - the trampoline sprite had transparent pixels. This was actually working as designed, so no code change needed, but I made a note for future sprite design.
 
 **Result**: Understood that collision detection was accurate, but sprites could be refined for better visual feedback.
 
@@ -501,7 +601,7 @@ if score % 50 == 0 and spawn_delay > 20:
 
 1. **Pygame Zero Framework**: The framework made it much easier to create a working game quickly. The Actor system and built-in collision detection saved a lot of time.
 
-2. **Class Structure**: Using a `FallingPerson` class to manage each falling person made the code much more organized and easier to debug.
+2. **Class Structure**: Using a `FallingPerson` class to manage each falling person made the code much more organised and easier to debug.
 
 3. **Progressive Difficulty**: The increasing spawn rate creates good replay value and keeps players engaged.
 
